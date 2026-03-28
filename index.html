@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mielina — Innovación que llega más lejos</title>
+<meta name="description" content="Estrategia, financiamiento y acompañamiento continuo para empresas que quieren innovar con inteligencia.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#060708;--bg2:#0D0F13;--bg3:#141720;
+  --lime:#AACC2A;--lime2:#C8EE40;--rose:#C4386B;--rose2:#E04E82;
+  --white:#EDEAE2;--muted:#5A5D6A;--muted2:#9A9DA8;
+  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.15);
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--white);font-family:'DM Sans',sans-serif;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden;cursor:none}
+.cursor{position:fixed;width:8px;height:8px;background:rgba(200,225,255,.95);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);mix-blend-mode:screen}
+.cursor-ring{position:fixed;width:30px;height:30px;border:1px solid rgba(160,200,255,.28);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%)}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");opacity:.025;pointer-events:none;z-index:1}
+#neural-canvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:.45}
+
+/* NAV — texto más claro */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:1.1rem 2.5rem;background:rgba(6,7,8,0.85);backdrop-filter:blur(20px);border-bottom:0.5px solid var(--border)}
+.nav-logo{font-family:'Bricolage Grotesque',sans-serif;font-size:20px;font-weight:800;background:linear-gradient(100deg,var(--lime),var(--rose));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-.02em;text-decoration:none}
+.nav-links{display:flex;gap:2.25rem;font-size:13px}
+.nav-links a{color:#C8CAD4;text-decoration:none;transition:color .2s;position:relative;font-weight:400}
+.nav-links a::after{content:'';position:absolute;bottom:-3px;left:0;right:0;height:1px;background:var(--lime);transform:scaleX(0);transition:transform .25s;transform-origin:left}
+.nav-links a:hover{color:var(--white)}.nav-links a:hover::after{transform:scaleX(1)}
+.nav-right{display:flex;gap:10px;align-items:center}
+.btn-ghost{font-size:12px;padding:7px 18px;border:0.5px solid rgba(255,255,255,.25);border-radius:99px;color:#C8CAD4;cursor:pointer;background:transparent;font-family:'DM Sans',sans-serif;transition:all .2s;text-decoration:none;display:inline-flex;align-items:center}
+.btn-ghost:hover{color:var(--white);border-color:rgba(255,255,255,.5);background:rgba(255,255,255,.06)}
+.btn-lime{font-size:12px;padding:8px 20px;border-radius:99px;background:var(--lime);color:#060708;font-weight:700;cursor:pointer;border:none;font-family:'Bricolage Grotesque',sans-serif;transition:all .25s;text-decoration:none;display:inline-flex;align-items:center}
+.btn-lime:hover{background:var(--lime2);transform:translateY(-1px)}
+
+/* HERO */
+.hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8rem 2rem 5rem;text-align:center;position:relative;z-index:2;overflow:hidden}
+.speed-lines{position:absolute;inset:0;pointer-events:none;overflow:hidden;opacity:.06}
+.speed-lines span{position:absolute;left:50%;top:50%;height:1px;background:linear-gradient(90deg,transparent,var(--white));transform-origin:left center;animation:speedLine 2.4s ease-out infinite}
+.speed-lines span:nth-child(1){width:45vw;transform:rotate(-8deg) translateX(-120%);animation-delay:0s}
+.speed-lines span:nth-child(2){width:55vw;transform:rotate(-4deg) translateX(-110%);animation-delay:.3s}
+.speed-lines span:nth-child(3){width:60vw;transform:rotate(0deg) translateX(-115%);animation-delay:.6s}
+.speed-lines span:nth-child(4){width:50vw;transform:rotate(4deg) translateX(-110%);animation-delay:.9s}
+.speed-lines span:nth-child(5){width:40vw;transform:rotate(8deg) translateX(-120%);animation-delay:1.2s}
+@keyframes speedLine{0%{opacity:0}20%{opacity:1}100%{opacity:0}}
+.hero-eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#C8CAD4;margin-bottom:2.5rem;border:0.5px solid var(--border2);border-radius:99px;padding:6px 16px;animation:fadeUp .8s ease both}
+.eyebrow-pulse{width:6px;height:6px;border-radius:50%;background:var(--lime);animation:pulse 2s ease infinite;flex-shrink:0}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.6)}}
+.hero h1{font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(52px,8.5vw,108px);font-weight:800;line-height:.93;letter-spacing:-.03em;margin-bottom:2rem;animation:fadeUp .9s .1s ease both}
+.hero h1 .line1{display:block;color:var(--white)}
+.hero h1 .line2{display:block;background:linear-gradient(100deg,var(--lime) 0%,var(--lime2) 40%,var(--rose) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.velocity-bar{display:flex;align-items:center;gap:12px;margin:0 auto 2.5rem;animation:fadeUp .9s .25s ease both}
+.vel-line{height:1px;width:80px;background:linear-gradient(90deg,transparent,var(--lime));opacity:.5}
+.vel-text{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#9A9DA8;font-family:'DM Sans',sans-serif}
+.vel-dot{width:5px;height:5px;border-radius:50%;background:var(--lime);animation:pulse 1.5s ease infinite;flex-shrink:0}
+.vel-line-r{height:1px;width:80px;background:linear-gradient(90deg,var(--rose),transparent);opacity:.5}
+.hero-sub{font-size:clamp(14px,1.5vw,17px);color:#9A9DA8;max-width:480px;margin:0 auto 3rem;line-height:1.75;font-weight:300;animation:fadeUp 1s .3s ease both}
+.hero-ctas{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;animation:fadeUp 1s .42s ease both}
+.btn-primary{font-size:14px;padding:15px 34px;border-radius:99px;background:var(--lime);color:#060708;font-weight:700;cursor:pointer;border:none;font-family:'Bricolage Grotesque',sans-serif;transition:all .25s;position:relative;overflow:hidden;text-decoration:none;display:inline-flex;align-items:center}
+.btn-primary::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.3),transparent);transform:translateX(-100%);transition:transform .5s}
+.btn-primary:hover::before{transform:translateX(100%)}
+.btn-primary:hover{background:var(--lime2);transform:translateY(-2px)}
+.btn-secondary{font-size:14px;padding:15px 34px;border-radius:99px;border:0.5px solid rgba(255,255,255,.25);color:var(--white);cursor:pointer;background:transparent;font-family:'DM Sans',sans-serif;transition:all .25s;text-decoration:none;display:inline-flex;align-items:center}
+.btn-secondary:hover{border-color:rgba(255,255,255,.5);background:rgba(255,255,255,.06)}
+.scroll-indicator{margin-top:3rem;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#6B6E7A;animation:fadeUp 1s .7s ease both}
+.scroll-line{width:1px;height:36px;background:linear-gradient(180deg,rgba(255,255,255,.2),transparent);animation:scrollAnim 2s ease infinite}
+@keyframes scrollAnim{0%{transform:scaleY(0);transform-origin:top}50%{transform:scaleY(1);transform-origin:top}51%{transform:scaleY(1);transform-origin:bottom}100%{transform:scaleY(0);transform-origin:bottom}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+
+/* SIGNAL */
+.signal{height:1px;width:100%;position:relative;z-index:2;background:linear-gradient(90deg,transparent,var(--rose) 25%,var(--lime) 75%,transparent);opacity:.25}
+
+/* STATS */
+.stats{display:flex;justify-content:center;border-top:0.5px solid var(--border);border-bottom:0.5px solid var(--border);position:relative;z-index:2}
+.stat{flex:1;max-width:220px;padding:2rem 1.5rem;text-align:center;border-right:0.5px solid var(--border);transition:background .3s}
+.stat:last-child{border-right:none}.stat:hover{background:rgba(255,255,255,.025)}
+.stat-num{font-family:'Bricolage Grotesque',sans-serif;font-size:36px;font-weight:800;background:linear-gradient(135deg,var(--lime),var(--rose));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1;margin-bottom:.25rem}
+.stat-label{font-size:12px;color:#9A9DA8;line-height:1.4}
+
+/* SECTIONS */
+.section{padding:7rem 2.5rem;max-width:1140px;margin:0 auto;position:relative;z-index:2}
+.section-tag{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--lime);margin-bottom:1rem;display:flex;align-items:center;gap:8px}
+.section-tag::before{content:'';width:20px;height:1px;background:var(--lime)}
+.section-title{font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(26px,3.2vw,44px);font-weight:700;line-height:1.1;margin-bottom:.75rem;letter-spacing:-.025em;color:var(--white)}
+.section-sub{font-size:15px;color:#9A9DA8;max-width:500px;line-height:1.75;margin-bottom:3.5rem;font-weight:300}
+
+/* SERVICES */
+.services-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--border);border-radius:20px;overflow:hidden}
+.service-card{background:var(--bg2);padding:2.25rem;position:relative;overflow:hidden;transition:background .3s}
+.service-card:hover{background:var(--bg3)}
+.service-icon-wrap{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:1.5rem;border:0.5px solid var(--border2)}
+.service-card h3{font-family:'Bricolage Grotesque',sans-serif;font-size:18px;font-weight:700;margin-bottom:.6rem;line-height:1.2;letter-spacing:-.02em;color:var(--white)}
+.service-card p{font-size:13px;color:#9A9DA8;line-height:1.65}
+.service-footer{margin-top:1.5rem;padding-top:1.25rem;border-top:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.tag-pill{font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:4px 10px;border-radius:99px;font-weight:500}
+.tl{background:rgba(170,204,42,.12);color:#C8EE40}.tr{background:rgba(196,56,107,.12);color:var(--rose2)}.tg{background:rgba(255,255,255,.08);color:#C8CAD4}
+.arrow-link{font-size:12px;color:#9A9DA8;transition:color .2s;display:flex;align-items:center;gap:4px;text-decoration:none;cursor:pointer}
+.arrow-link:hover{color:var(--lime)}.arrow-link span{display:inline-block;transition:transform .2s}.arrow-link:hover span{transform:translateX(3px)}
+
+/* MODELOS */
+.model-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.model-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:16px;padding:1.75rem;position:relative;overflow:hidden;transition:border-color .3s,transform .3s}
+.model-card:hover{border-color:rgba(255,255,255,.2);transform:translateY(-3px)}
+.model-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--rose),var(--lime));transform:scaleX(0);transition:transform .35s;transform-origin:left}
+.model-card:hover::after{transform:scaleX(1)}
+.model-num{font-family:'Bricolage Grotesque',sans-serif;font-size:48px;font-weight:800;line-height:1;margin-bottom:1rem;color:rgba(255,255,255,.08);transition:color .3s}
+.model-card:hover .model-num{color:var(--lime)}
+.model-card h3{font-family:'Bricolage Grotesque',sans-serif;font-size:15px;font-weight:700;margin-bottom:.4rem;letter-spacing:-.01em;color:var(--white)}
+.model-card p{font-size:12px;color:#9A9DA8;line-height:1.6}
+
+/* CASOS */
+.casos-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.caso-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:16px;overflow:hidden;transition:border-color .3s,transform .3s}
+.caso-card:hover{border-color:rgba(255,255,255,.2);transform:translateY(-3px)}
+.caso-header{padding:1.5rem 1.5rem 1rem;border-bottom:0.5px solid var(--border)}
+.caso-sector{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#9A9DA8;margin-bottom:.5rem}
+.caso-empresa{font-family:'Bricolage Grotesque',sans-serif;font-size:15px;font-weight:700;line-height:1.2;margin-bottom:.25rem;letter-spacing:-.01em;color:var(--white)}
+.caso-instrumento{font-size:11px;color:#6B6E7A}
+.caso-body{padding:1.25rem 1.5rem}
+.caso-resultado{font-family:'Bricolage Grotesque',sans-serif;font-size:32px;font-weight:800;background:linear-gradient(135deg,var(--lime),var(--rose));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1;margin-bottom:.3rem}
+.caso-desc{font-size:12px;color:#9A9DA8;line-height:1.55}
+.caso-tag{display:inline-block;font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:99px;margin-top:.75rem;background:rgba(170,204,42,.12);color:#C8EE40;font-weight:500}
+
+/* CATALOGO */
+.catalogo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.catalogo-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:16px;padding:1.5rem;transition:border-color .3s,transform .3s;position:relative;overflow:hidden}
+.catalogo-card:hover{border-color:rgba(255,255,255,.2);transform:translateY(-3px)}
+.catalogo-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--lime),var(--rose));transform:scaleX(0);transition:transform .35s;transform-origin:left}
+.catalogo-card:hover::before{transform:scaleX(1)}
+.cat-tipo{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#6B6E7A;margin-bottom:.6rem}
+.catalogo-card h3{font-family:'Bricolage Grotesque',sans-serif;font-size:16px;font-weight:700;margin-bottom:.5rem;line-height:1.2;letter-spacing:-.01em;color:var(--white)}
+.catalogo-card p{font-size:12px;color:#9A9DA8;line-height:1.6;margin-bottom:1.25rem}
+.cat-footer{display:flex;align-items:center;justify-content:space-between;border-top:0.5px solid var(--border);padding-top:1rem}
+.cat-precio{font-family:'Bricolage Grotesque',sans-serif;font-size:20px;font-weight:800;color:var(--white);letter-spacing:-.02em}
+.cat-precio span{font-size:11px;font-weight:400;color:#6B6E7A;font-family:'DM Sans',sans-serif}
+.btn-comprar{font-size:11px;padding:7px 16px;border-radius:99px;background:var(--lime);color:#060708;font-weight:700;cursor:pointer;border:none;font-family:'Bricolage Grotesque',sans-serif;transition:all .2s}
+.btn-comprar:hover{background:var(--lime2);transform:scale(1.04)}
+.btn-contactar{font-size:11px;padding:7px 16px;border-radius:99px;border:0.5px solid rgba(255,255,255,.25);color:#C8CAD4;cursor:pointer;background:transparent;font-family:'DM Sans',sans-serif;transition:all .2s}
+.btn-contactar:hover{color:var(--white);border-color:rgba(255,255,255,.5)}
+
+/* CONVOCATORIAS */
+.conv-list{display:flex;flex-direction:column;gap:10px}
+.conv-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:16px;overflow:hidden;transition:border-color .25s,background .25s}
+.conv-card:hover{border-color:rgba(255,255,255,.2);background:var(--bg3)}
+.conv-card-inner{display:flex;align-items:center;justify-content:space-between;gap:1.5rem;padding:1.75rem 2rem;flex-wrap:wrap}
+.conv-img{width:100%;height:180px;object-fit:cover;display:block;border-bottom:0.5px solid var(--border)}
+.conv-badge{display:inline-block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:5px 12px;border-radius:99px;margin-bottom:.75rem;font-weight:600}
+.cb-lime{background:rgba(170,204,42,.15);color:#C8EE40}.cb-rose{background:rgba(196,56,107,.15);color:var(--rose2)}
+.conv-card h3{font-family:'Bricolage Grotesque',sans-serif;font-size:19px;font-weight:700;margin-bottom:.4rem;letter-spacing:-.02em;color:var(--white)}
+.conv-card p{font-size:14px;color:#C8CAD4;line-height:1.6}
+.conv-meta{text-align:right;flex-shrink:0}
+.conv-amount{font-family:'Bricolage Grotesque',sans-serif;font-size:30px;font-weight:800;background:linear-gradient(135deg,var(--lime),var(--rose));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-.02em}
+.conv-label{font-size:11px;color:#6B6E7A;margin-bottom:.5rem}
+.btn-sm{font-size:11px;padding:6px 16px;border-radius:99px;border:0.5px solid rgba(255,255,255,.25);background:transparent;color:#C8CAD4;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;display:inline-block}
+.btn-sm:hover{color:var(--white);border-color:rgba(255,255,255,.5)}
+.conv-req{font-size:11px;color:#6B6E7A;margin-top:.4rem}
+.conv-req span{color:#9A9DA8}
+
+/* BLOG */
+.blog-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.blog-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:16px;padding:1.75rem;transition:border-color .25s,transform .3s;cursor:pointer;display:flex;flex-direction:column}
+.blog-card:hover{border-color:rgba(255,255,255,.2);transform:translateY(-3px)}
+.blog-cat{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--rose2);margin-bottom:.75rem}
+.blog-card h3{font-family:'Bricolage Grotesque',sans-serif;font-size:16px;font-weight:700;line-height:1.3;margin-bottom:.6rem;flex:1;letter-spacing:-.01em;color:var(--white)}
+.blog-card p{font-size:12px;color:#9A9DA8;line-height:1.6}
+.blog-meta{font-size:11px;color:#6B6E7A;margin-top:1.25rem;padding-top:1rem;border-top:0.5px solid var(--border);display:flex;justify-content:space-between}
+
+/* PLATAFORMA */
+.platform-wrap{background:var(--bg2);border:0.5px solid var(--border);border-radius:24px;padding:3.5rem;display:grid;grid-template-columns:1fr 1.1fr;gap:4rem;align-items:center}
+.platform-features{margin-top:2rem;display:flex;flex-direction:column;gap:1rem}
+.feat-item{display:flex;align-items:flex-start;gap:.875rem;font-size:13px;color:#9A9DA8;line-height:1.5}
+.feat-icon{width:28px;height:28px;border-radius:7px;flex-shrink:0;border:0.5px solid var(--border2);display:flex;align-items:center;justify-content:center;background:rgba(170,204,42,.07)}
+.screen-mock{background:var(--bg3);border:0.5px solid var(--border);border-radius:16px;overflow:hidden}
+.screen-topbar{background:rgba(255,255,255,.03);padding:.6rem 1rem;border-bottom:0.5px solid var(--border);display:flex;align-items:center;gap:6px}
+.sdot{width:9px;height:9px;border-radius:50%}
+.screen-body{padding:1.25rem}
+.s-row{display:flex;align-items:center;justify-content:space-between;padding:.5rem .6rem;border-radius:8px;margin-bottom:4px}
+.s-name{font-size:12px;color:var(--white)}
+.s-badge{font-size:10px;padding:2px 8px;border-radius:99px}
+.s-divider{height:.5px;background:var(--border);margin:1rem 0}
+.s-alert{background:rgba(170,204,42,.07);border:0.5px solid rgba(170,204,42,.15);border-radius:8px;padding:.6rem .75rem}
+
+/* ACCESO CLIENTE */
+.acceso-wrap{background:var(--bg2);border:0.5px solid var(--border);border-radius:20px;padding:3rem;max-width:560px;margin:0 auto;text-align:center}
+.acceso-wrap h3{font-family:'Bricolage Grotesque',sans-serif;font-size:22px;font-weight:700;margin-bottom:.5rem;letter-spacing:-.02em;color:var(--white)}
+.acceso-wrap p{font-size:14px;color:#9A9DA8;margin-bottom:2rem;line-height:1.6}
+.acceso-form{display:flex;gap:8px;max-width:400px;margin:0 auto}
+.acceso-input{flex:1;background:var(--bg3);border:0.5px solid rgba(255,255,255,.2);border-radius:99px;padding:10px 18px;font-size:13px;color:var(--white);font-family:'DM Sans',sans-serif;outline:none;transition:border-color .2s}
+.acceso-input:focus{border-color:rgba(170,204,42,.5)}
+.acceso-msg{font-size:13px;margin-top:1rem;min-height:20px;line-height:1.6}
+.acceso-msg.ok{color:var(--lime)}.acceso-msg.err{color:var(--rose2)}
+
+/* CTA */
+.cta-wrap{position:relative;z-index:2;padding:9rem 2rem;text-align:center;overflow:hidden}
+.cta-glow{position:absolute;top:50%;left:50%;width:700px;height:350px;background:radial-gradient(ellipse,rgba(170,204,42,.06),transparent 70%);transform:translate(-50%,-50%);pointer-events:none}
+.cta-wrap h2{font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(48px,7vw,96px);font-weight:800;letter-spacing:-.035em;line-height:.95;margin-bottom:1.5rem;color:var(--white)}
+.cta-sub{font-size:17px;color:#9A9DA8;margin-bottom:3rem;font-weight:300;line-height:1.6}
+.cta-btns{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+
+/* FOOTER */
+footer{border-top:0.5px solid var(--border);padding:2rem 2.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;position:relative;z-index:2}
+.footer-links{display:flex;gap:1.75rem;font-size:12px}
+.footer-links a{text-decoration:none;color:#9A9DA8;transition:color .2s}.footer-links a:hover{color:var(--white)}
+.footer-copy{font-size:12px;color:#6B6E7A}
+
+/* REVEAL */
+.reveal{opacity:0;transform:translateY(28px);transition:opacity .7s ease,transform .7s ease}
+.reveal.visible{opacity:1;transform:translateY(0)}
+.reveal-delay-1{transition-delay:.1s}.reveal-delay-2{transition-delay:.2s}.reveal-delay-3{transition-delay:.3s}
+
+.conv-skeleton{background:var(--bg2);border:0.5px solid var(--border);border-radius:16px;padding:1.75rem 2rem;height:120px;animation:shimmer 1.5s infinite}
+@keyframes shimmer{0%,100%{opacity:.4}50%{opacity:.8}}
+
+@media(max-width:900px){
+  nav{padding:.9rem 1.25rem}.nav-links{display:none}
+  .section{padding:4rem 1.25rem}
+  .services-grid,.catalogo-grid,.casos-grid,.blog-grid{grid-template-columns:1fr}
+  .model-grid{grid-template-columns:repeat(2,1fr)}
+  .platform-wrap{grid-template-columns:1fr;gap:2rem}
+  .stats{flex-wrap:wrap}.stat{min-width:50%}
+  .acceso-form{flex-direction:column}
+}
+</style>
+</head>
+<body>
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+<canvas id="neural-canvas"></canvas>
+
+<nav id="nav">
+  <a class="nav-logo" href="/">Mielina</a>
+  <div class="nav-links">
+    <a href="#servicios">Servicios</a>
+    <a href="#casos">Casos de éxito</a>
+    <a href="#catalogo">Catálogo</a>
+    <a href="#convocatorias">Convocatorias</a>
+    <a href="#blog">Blog</a>
+  </div>
+  <div class="nav-right">
+    <a href="#acceso-cliente" class="btn-ghost">Acceder a mi proyecto</a>
+    <a href="https://calendly.com/carlosmadridgomez" target="_blank" class="btn-lime">Activa tu proyecto</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="speed-lines"><span></span><span></span><span></span><span></span><span></span></div>
+  <div class="hero-eyebrow"><span class="eyebrow-pulse"></span>Consultoría de innovación · Chile</div>
+  <h1><span class="line1">Conectamos ciencia</span><span class="line2">con resultado</span></h1>
+  <div class="velocity-bar">
+    <div class="vel-line"></div><div class="vel-dot"></div>
+    <div class="vel-text">innovación que llega más lejos</div>
+    <div class="vel-dot"></div><div class="vel-line-r"></div>
+  </div>
+  <p class="hero-sub">Estrategia, financiamiento y acompañamiento continuo para empresas que quieren innovar con inteligencia — no solo postular fondos.</p>
+  <div class="hero-ctas">
+    <a href="https://calendly.com/carlosmadridgomez" target="_blank" class="btn-primary">Activa tu proyecto</a>
+    <a href="#servicios" class="btn-secondary">Ver servicios</a>
+  </div>
+  <div class="scroll-indicator"><span>scroll</span><div class="scroll-line"></div></div>
+</section>
+
+<div class="stats">
+  <div class="stat reveal"><div class="stat-num" data-target="10" data-suffix="+">10+</div><div class="stat-label">años en innovación<br>y transferencia tecnológica</div></div>
+  <div class="stat reveal reveal-delay-1"><div class="stat-num" data-target="35" data-suffix="%">35%</div><div class="stat-label">costos I+D recuperables<br>con Ley 20.241</div></div>
+  <div class="stat reveal reveal-delay-2"><div class="stat-num" data-target="134" data-suffix="M">134M</div><div class="stat-label">máximo cofinanciable<br>Startup Ciencia 2026</div></div>
+  <div class="stat reveal reveal-delay-3"><div class="stat-num" data-target="4" data-suffix="">4</div><div class="stat-label">modelos de trabajo<br>según tu etapa</div></div>
+</div>
+
+<div class="signal"></div>
+
+<section class="section" id="servicios">
+  <div class="section-tag reveal">Servicios</div>
+  <div class="section-title reveal">Más que fondos<br>Inteligencia para innovar</div>
+  <p class="section-sub reveal">Desde la estrategia hasta la ejecución — con o sin financiamiento público.</p>
+  <div class="services-grid reveal">
+    <div class="service-card">
+      <div class="service-icon-wrap"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#AACC2A" stroke-width="1.5" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div>
+      <h3>Estrategia de innovación</h3>
+      <p>Roadmaps tecnológicos, diagnóstico de capacidades I+D y posicionamiento estratégico para empresas que quieren crecer con foco. Más allá de los fondos.</p>
+      <div class="service-footer"><span class="tag-pill tl">Retainer mensual</span><a class="arrow-link" href="#catalogo">Ver planes <span>→</span></a></div>
+    </div>
+    <div class="service-card">
+      <div class="service-icon-wrap" style="background:rgba(196,56,107,.08)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C4386B" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg></div>
+      <h3>Formulación CORFO y ANID</h3>
+      <p>Diseño de propuestas para Crea y Valida, Alta Tecnología, Startup Ciencia y Ley I+D. Alineadas a criterios técnicos con foco en adjudicación.</p>
+      <div class="service-footer"><span class="tag-pill tr">Por proyecto</span><a class="arrow-link" href="#catalogo">Ver planes <span>→</span></a></div>
+    </div>
+    <div class="service-card">
+      <div class="service-icon-wrap"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#AACC2A" stroke-width="1.5" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div>
+      <h3>Formación para equipos</h3>
+      <p>Talleres y programas en innovación, TRL y acceso a fondos públicos. Para equipos internos que quieren navegar el ecosistema.</p>
+      <div class="service-footer"><span class="tag-pill tg">A medida</span><a class="arrow-link" href="#catalogo">Ver planes <span>→</span></a></div>
+    </div>
+    <div class="service-card">
+      <div class="service-icon-wrap" style="background:rgba(196,56,107,.08)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C4386B" stroke-width="1.5" stroke-linecap="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
+      <h3>Diagnóstico Ley I+D</h3>
+      <p>Evaluación técnica para recuperar hasta un 35% de tus costos de I+D vía crédito tributario Ley 20.241. Informe en 72 hrs.</p>
+      <div class="service-footer"><span class="tag-pill tl">Desde USD $80</span><a class="arrow-link" href="#catalogo">Comprar <span>→</span></a></div>
+    </div>
+  </div>
+</section>
+
+<div class="signal"></div>
+
+<section class="section">
+  <div class="section-tag reveal">Cómo trabajamos</div>
+  <div class="section-title reveal">Cuatro formas de acompañarte</div>
+  <p class="section-sub reveal">Elige el modelo que mejor calza con tu etapa y necesidad.</p>
+  <div class="model-grid">
+    <div class="model-card reveal"><div class="model-num">01</div><h3>Diagnóstico puntual</h3><p>Sesión de 90 min para revisar tu desafío, validar viabilidad y definir próximos pasos.</p></div>
+    <div class="model-card reveal reveal-delay-1"><div class="model-num">02</div><h3>Proyecto específico</h3><p>Formulación completa con revisión técnica y acompañamiento hasta el envío final.</p></div>
+    <div class="model-card reveal reveal-delay-2"><div class="model-num">03</div><h3>Retainer mensual</h3><p>Estrategia continua, seguimiento de proyectos activos e identificación de oportunidades.</p></div>
+    <div class="model-card reveal reveal-delay-3"><div class="model-num">04</div><h3>Recursos digitales</h3><p>Guías, templates y cursos para navegar el ecosistema de innovación chileno.</p></div>
+  </div>
+</section>
+
+<div class="signal"></div>
+
+<section class="section" id="casos">
+  <div class="section-tag reveal">Casos de éxito</div>
+  <div class="section-title reveal">Proyectos que llegaron más lejos</div>
+  <p class="section-sub reveal">Empresas que acompañamos desde la idea hasta el financiamiento adjudicado.</p>
+  <div class="casos-grid">
+    <div class="caso-card reveal">
+      <div class="caso-header"><div class="caso-sector">Minería · CORFO Alta Tecnología</div><div class="caso-empresa">Empresa de automatización industrial</div><div class="caso-instrumento">CORFO — Alta Tecnología 2024</div></div>
+      <div class="caso-body"><div class="caso-resultado">$280M</div><p class="caso-desc">Proyecto de automatización en minería subterránea. Formulación completa en 6 semanas, adjudicado en primera evaluación.</p><span class="caso-tag">Adjudicado</span></div>
+    </div>
+    <div class="caso-card reveal reveal-delay-1">
+      <div class="caso-header"><div class="caso-sector">Agrotecnología · ANID</div><div class="caso-empresa">Startup de sensores agrícolas</div><div class="caso-instrumento">Startup Ciencia 2023</div></div>
+      <div class="caso-body"><div class="caso-resultado">$134M</div><p class="caso-desc">Solución IoT para monitoreo de cultivos. Diagnóstico, formulación y acompañamiento en evaluación técnica externa.</p><span class="caso-tag">Adjudicado</span></div>
+    </div>
+    <div class="caso-card reveal reveal-delay-2">
+      <div class="caso-header"><div class="caso-sector">Biotecnología · Ley I+D</div><div class="caso-empresa">Laboratorio de diagnóstico</div><div class="caso-instrumento">Ley 20.241 — Crédito tributario</div></div>
+      <div class="caso-body"><div class="caso-resultado">35%</div><p class="caso-desc">Identificación de actividades calificables y preparación del expediente. Recuperación en 3 ejercicios fiscales.</p><span class="caso-tag" style="background:rgba(196,56,107,.12);color:var(--rose2)">Recuperado</span></div>
+    </div>
+  </div>
+</section>
+
+<div class="signal"></div>
+
+<section class="section" id="catalogo">
+  <div class="section-tag reveal">Catálogo de servicios</div>
+  <div class="section-title reveal" id="catalogo-titulo">Elige y parte hoy</div>
+  <p class="section-sub reveal" id="catalogo-subtitulo">Servicios con precio claro y pago online — sin OC ni esperas.</p>
+  <div class="catalogo-grid">
+    <div class="catalogo-card reveal">
+      <div class="cat-tipo">Diagnóstico</div><h3>Sesión exploratoria</h3>
+      <p>90 minutos para revisar tu desafío, validar viabilidad y definir próximos pasos. Sin compromiso.</p>
+      <div class="cat-footer"><div class="cat-precio">Gratis <span>/ primera sesión</span></div><button class="btn-comprar" onclick="window.open('https://calendly.com/carlosmadridgomez','_blank')">Agendar</button></div>
+    </div>
+    <div class="catalogo-card reveal reveal-delay-1">
+      <div class="cat-tipo">Evaluación técnica</div><h3>Diagnóstico Ley I+D</h3>
+      <p>Evaluación técnica de tus actividades de I+D. Informe en 72 hrs con recomendaciones concretas.</p>
+      <div class="cat-footer"><div class="cat-precio">USD $80 <span>/ informe</span></div><button class="btn-comprar" onclick="window.open('https://www.paypal.com/ncp/payment/J8X4747FQ2AYY','_blank')">Pagar ahora</button></div>
+    </div>
+    <div class="catalogo-card reveal reveal-delay-2">
+      <div class="cat-tipo">Recurso digital</div><h3>Guía de postulación CORFO</h3>
+      <p>Template completo con estructura, ejemplos reales y criterios de evaluación para Crea y Valida.</p>
+      <div class="cat-footer"><div class="cat-precio">USD $40 <span>/ descarga</span></div><button class="btn-comprar" onclick="window.open('https://calendly.com/carlosmadridgomez','_blank')">Comprar</button></div>
+    </div>
+    <div class="catalogo-card reveal">
+      <div class="cat-tipo">Formulación</div><h3>Revisión técnica express</h3>
+      <p>Revisión de una propuesta con observaciones detalladas y recomendaciones antes del envío.</p>
+      <div class="cat-footer"><div class="cat-precio">USD $350 <span>/ propuesta</span></div><button class="btn-comprar" onclick="window.open('https://calendly.com/carlosmadridgomez','_blank')">Contratar</button></div>
+    </div>
+    <div class="catalogo-card reveal reveal-delay-1" style="border-color:rgba(170,204,42,.25)">
+      <div style="position:absolute;top:-1px;left:1.5rem;background:var(--lime);color:#060708;font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:3px 10px;border-radius:0 0 8px 8px;font-weight:700;font-family:'Bricolage Grotesque',sans-serif">Más solicitado</div>
+      <div class="cat-tipo" style="margin-top:.5rem">Retainer</div><h3>Acompañamiento mensual</h3>
+      <p>Estrategia de innovación, seguimiento de proyectos activos, identificación de oportunidades y revisión mensual.</p>
+      <div class="cat-footer"><div class="cat-precio">USD $600 <span>/ mes</span></div><button class="btn-comprar" onclick="window.open('https://calendly.com/carlosmadridgomez','_blank')">Contratar</button></div>
+    </div>
+    <div class="catalogo-card reveal reveal-delay-2">
+      <div class="cat-tipo">Formulación completa</div><h3>Proyecto CORFO o ANID</h3>
+      <p>Diagnóstico, formulación integral, revisión y acompañamiento hasta el envío. Precio según instrumento.</p>
+      <div class="cat-footer"><div class="cat-precio">A cotizar</div><button class="btn-contactar" onclick="window.open('https://calendly.com/carlosmadridgomez','_blank')">Consultar</button></div>
+    </div>
+  </div>
+</section>
+
+<div class="signal"></div>
+
+<section class="section" id="convocatorias">
+  <div class="section-tag reveal">Convocatorias abiertas</div>
+  <div class="section-title reveal">¿Tu proyecto tiene financiamiento disponible</div>
+  <p class="section-sub reveal">Fondos activos ahora mismo. Te ayudamos a evaluar si tu proyecto califica.</p>
+  <div class="conv-list" id="conv-list">
+    <div class="conv-skeleton"></div>
+    <div class="conv-skeleton" style="animation-delay:.2s"></div>
+    <div class="conv-skeleton" style="animation-delay:.4s"></div>
+  </div>
+</section>
+
+<div class="signal"></div>
+
+<section class="section" id="blog">
+  <div class="section-tag reveal">Blog · Opinión</div>
+  <div class="section-title reveal">Ideas sobre innovación, ciencia y estrategia</div>
+  <p class="section-sub reveal">Reflexiones directas sobre el ecosistema de I+D en Chile.</p>
+  <div class="blog-grid" id="blog-grid">
+    <div class="blog-card reveal"><div class="blog-cat">Financiamiento</div><h3>Por qué la mayoría de las empresas deja dinero CORFO sobre la mesa</h3><p>No es falta de proyectos, es falta de estructura.</p><div class="blog-meta"><span>Mar 2026 · 5 min</span><span style="color:var(--lime)">Leer →</span></div></div>
+    <div class="blog-card reveal reveal-delay-1"><div class="blog-cat">Estrategia</div><h3>Innovar sin fondos públicos: el modelo que nadie enseña en Chile</h3><p>El financiamiento público es una herramienta, no una estrategia.</p><div class="blog-meta"><span>Feb 2026 · 7 min</span><span style="color:var(--lime)">Leer →</span></div></div>
+    <div class="blog-card reveal reveal-delay-2"><div class="blog-cat">Política pública</div><h3>¿Está fallando el ecosistema de innovación chileno</h3><p>Cifras y lo que los fondos no están logrando resolver.</p><div class="blog-meta"><span>Ene 2026 · 8 min</span><span style="color:var(--lime)">Leer →</span></div></div>
+  </div>
+</section>
+
+<div class="signal"></div>
+
+<section class="section" id="plataforma">
+  <div class="section-tag reveal">Plataforma</div>
+  <div class="platform-wrap reveal">
+    <div>
+      <div class="section-title" style="font-size:clamp(22px,2.8vw,36px);margin-bottom:.75rem">Seguimiento en tiempo real</div>
+      <p style="font-size:14px;color:#9A9DA8;line-height:1.75;font-weight:300">Cada cliente tiene acceso a su propio espacio: ve el avance del proyecto, los hitos de pago y los documentos — sin llamar ni escribir para preguntar cómo va todo.</p>
+      <div class="platform-features">
+        <div class="feat-item"><div class="feat-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#AACC2A" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>Progreso por etapas con fechas clave</div>
+        <div class="feat-item"><div class="feat-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#AACC2A" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>Documentos compartidos siempre disponibles</div>
+        <div class="feat-item"><div class="feat-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#AACC2A" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg></div>Hitos de facturación y alertas de cierre</div>
+        <div class="feat-item"><div class="feat-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#AACC2A" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></div>Acceso por link directo sin contraseña</div>
+      </div>
+    </div>
+    <div class="screen-mock">
+      <div class="screen-topbar"><div class="sdot" style="background:#FF5F57"></div><div class="sdot" style="background:#FFBD2E"></div><div class="sdot" style="background:#28CA41"></div><span style="font-size:10px;color:#6B6E7A;margin-left:8px">mielina.cl/cliente.html</span></div>
+      <div class="screen-body">
+        <div style="font-size:11px;color:#6B6E7A;letter-spacing:.08em;text-transform:uppercase;margin-bottom:.75rem">Proyecto · Empresa Ejemplo</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+          <div style="font-family:'Bricolage Grotesque',sans-serif;font-size:14px;font-weight:700;color:#EDEAE2">Formulación CORFO</div>
+          <span class="s-badge" style="background:rgba(170,204,42,.1);color:#AACC2A;font-size:10px;padding:3px 8px;border-radius:99px">En formulación</span>
+        </div>
+        <div style="height:4px;background:rgba(255,255,255,.06);border-radius:99px;margin-bottom:.3rem;overflow:hidden">
+          <div style="height:4px;width:65%;background:linear-gradient(90deg,#AACC2A,#C4386B);border-radius:99px"></div>
+        </div>
+        <div style="font-size:10px;color:#6B6E7A;margin-bottom:1rem">65% completado</div>
+        <div class="s-divider"></div>
+        <div style="font-size:11px;color:#6B6E7A;margin-bottom:.5rem">Hitos de facturación</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:.4rem .5rem;background:rgba(170,204,42,.05);border-radius:7px;margin-bottom:4px">
+          <span style="font-size:11px;color:#EDEAE2">Anticipo — firma de propuesta</span>
+          <span style="font-size:10px;color:#AACC2A;background:rgba(170,204,42,.1);padding:2px 7px;border-radius:99px">Pagado</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:.4rem .5rem;border-radius:7px;margin-bottom:4px">
+          <span style="font-size:11px;color:#9A9DA8">Envío del proyecto final</span>
+          <span style="font-size:10px;color:#9A9DA8;background:rgba(255,255,255,.05);padding:2px 7px;border-radius:99px">Pendiente</span>
+        </div>
+        <div class="s-divider"></div>
+        <div class="s-alert"><div style="font-size:11px;color:#AACC2A;font-family:'Bricolage Grotesque',sans-serif;font-weight:700">Cierre convocatoria: 14 abr</div><div style="font-size:10px;color:#9A9DA8;margin-top:2px">17 días · Documentos pendientes</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="signal"></div>
+
+<section class="section" id="acceso-cliente">
+  <div class="section-tag reveal">Área de clientes</div>
+  <div class="section-title reveal" style="text-align:center">¿Ya eres cliente?</div>
+  <div class="acceso-wrap reveal">
+    <h3>Accede a tu proyecto</h3>
+    <p>Ingresa el email con el que te registramos y te enviaremos el link directo a tu proyecto en segundos.</p>
+    <div class="acceso-form">
+      <input type="email" class="acceso-input" id="acceso-email" placeholder="tu@empresa.cl">
+      <button class="btn-primary" style="font-size:13px;padding:10px 20px;white-space:nowrap" onclick="buscarProyecto()">Enviar link</button>
+    </div>
+    <div class="acceso-msg" id="acceso-msg"></div>
+  </div>
+</section>
+
+<div class="cta-wrap">
+  <div class="cta-glow"></div>
+  <div class="signal" style="margin-bottom:5rem"></div>
+  <h2 class="reveal">Activa tu proyecto</h2>
+  <p class="cta-sub reveal">Primera reunión sin costo. Revisamos tu desafío y vemos<br>cómo Mielina puede ayudarte a ir más lejos.</p>
+  <div class="cta-btns reveal">
+    <a href="https://calendly.com/carlosmadridgomez" target="_blank" class="btn-primary">Agendar en Calendly</a>
+    <a href="/cdn-cgi/l/email-protection#a6c5c7d4cac9d5cbc7c2d4cfc2c1c9cbc3dce6c1cbc7cfca88c5c9cb" class="btn-secondary">Enviar mensaje</a>
+  </div>
+</div>
+
+<footer>
+  <a class="nav-logo" href="/" style="font-size:18px">Mielina</a>
+  <div class="footer-links">
+    <a href="#servicios">Servicios</a><a href="#casos">Casos</a><a href="#catalogo">Catálogo</a>
+    <a href="#convocatorias">Convocatorias</a><a href="#blog">Blog</a>
+    <a href="https://linkedin.com/in/carlosmadridgomez" target="_blank">LinkedIn</a>
+    <a href="app.html" style="color:#5A5D6A;font-size:11px">· Admin</a>
+  </div>
+  <div class="footer-copy">© 2026 Mielina · Carlos Madrid Gómez</div>
+</footer>
+
+<script data-cfasync="false">
+const SUPABASE_URL='https://qvquoadbkztbrxfclfmt.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF2cXVvYWRia3p0YnJ4ZmNsZm10Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MDYzMDIsImV4cCI6MjA5MDI4MjMwMn0.uM7FzCllWvH5ic4RHxo7aoDnK2a9HcKGz1m6MSrP_Dg';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+
+/* CURSOR */
+const cursor=document.getElementById('cursor'),ring=document.getElementById('cursorRing');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cursor.style.left=mx+'px';cursor.style.top=my+'px'});
+(function animRing(){rx+=(mx-rx)*.1;ry+=(my-ry)*.1;ring.style.left=rx+'px';ring.style.top=ry+'px';requestAnimationFrame(animRing)})();
+
+/* NEURAL CANVAS */
+const canvas=document.getElementById('neural-canvas'),ctx=canvas.getContext('2d');
+let W,H,nodes=[];
+function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight}
+resize();window.addEventListener('resize',()=>{resize();initNodes()});
+class Node{constructor(){this.reset()}reset(){this.x=Math.random()*W;this.y=Math.random()*H;this.vx=(Math.random()-.5)*.28;this.vy=(Math.random()-.5)*.28;this.r=Math.random()*1.4+.4;this.age=0;this.life=Math.random()*280+120}update(){this.x+=this.vx;this.y+=this.vy;this.age++;if(this.age>this.life||this.x<-20||this.x>W+20||this.y<-20||this.y>H+20)this.reset()}}
+function initNodes(){nodes=[];for(let i=0;i<85;i++)nodes.push(new Node())}
+initNodes();
+let sigIdx=0,tick=0;
+function draw(){ctx.clearRect(0,0,W,H);tick++;if(tick%110===0)sigIdx=Math.floor(Math.random()*nodes.length);nodes.forEach(n=>n.update());for(let i=0;i<nodes.length;i++){for(let j=i+1;j<nodes.length;j++){const dx=nodes[i].x-nodes[j].x,dy=nodes[i].y-nodes[j].y,d=Math.sqrt(dx*dx+dy*dy);if(d<135){ctx.beginPath();ctx.moveTo(nodes[i].x,nodes[i].y);ctx.lineTo(nodes[j].x,nodes[j].y);ctx.strokeStyle=`rgba(185,215,255,${(1-d/135)*.13})`;ctx.lineWidth=.5;ctx.stroke()}}}nodes.forEach((n,i)=>{const s=i===sigIdx;ctx.beginPath();ctx.arc(n.x,n.y,s?n.r*3:n.r,0,Math.PI*2);ctx.fillStyle=s?'rgba(225,240,255,0.9)':'rgba(195,220,255,0.28)';ctx.fill();if(s){const p=(tick%110)/110;ctx.beginPath();ctx.arc(n.x,n.y,n.r*3+p*22,0,Math.PI*2);ctx.strokeStyle=`rgba(200,228,255,${.4*(1-p)})`;ctx.lineWidth=.8;ctx.stroke()}});requestAnimationFrame(draw)}
+draw();
+
+/* REVEAL */
+const obs=new IntersectionObserver(e=>e.forEach(en=>{if(en.isIntersecting)en.target.classList.add('visible')}),{threshold:.1});
+document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
+
+/* COUNTERS */
+const cObs=new IntersectionObserver(e=>{e.forEach(en=>{
+  if(!en.isIntersecting)return;
+  const el=en.target,t=+el.dataset.target,s=el.dataset.suffix||'';
+  let st=null;
+  function step(ts){if(!st)st=ts;const p=Math.min((ts-st)/1300,1),ease=1-Math.pow(1-p,3);const v=Math.floor(t*ease);el.textContent=(isNaN(v)?t:v)+s;if(p<1)requestAnimationFrame(step)}
+  requestAnimationFrame(step);
+  cObs.unobserve(el);
+})},{threshold:.3});
+document.querySelectorAll('.stat-num[data-target]').forEach(el=>cObs.observe(el));
+
+/* NAV scroll */
+window.addEventListener('scroll',()=>{
+  document.getElementById('nav').style.background=window.scrollY>60?'rgba(6,7,8,0.95)':'rgba(6,7,8,0.85)';
+});
+
+/* CONTENIDO EDITABLE */
+async function loadContenido(){
+  try{
+    const{data}=await sb.from('contenido_web').select('clave,valor');
+    if(!data)return;
+    const map={};data.forEach(r=>map[r.clave]=r.valor);
+    if(map.catalogo_titulo)document.getElementById('catalogo-titulo').textContent=map.catalogo_titulo;
+    if(map.catalogo_subtitulo)document.getElementById('catalogo-subtitulo').textContent=map.catalogo_subtitulo;
+  }catch(e){}
+}
+loadContenido();
+
+/* BLOG DINÁMICO */
+async function loadBlog(){
+  try{
+    const{data}=await sb.from('blog_posts').select('*').eq('activo',true).order('orden').limit(3);
+    if(!data||!data.length)return; // keep static fallback
+    document.getElementById('blog-grid').innerHTML=data.map(p=>`
+      <div class="blog-card">
+        <div class="blog-cat">${p.categoria||'Blog'}</div>
+        <h3>${p.titulo}</h3>
+        <p>${p.resumen||''}</p>
+        <div class="blog-meta"><span>${p.fecha?formatFecha(p.fecha):''}</span><span style="color:var(--lime)">Leer →</span></div>
+      </div>`).join('');
+  }catch(e){/* keep static */}
+}
+loadBlog();
+
+/* CONVOCATORIAS */
+async function loadConvocatorias(){
+  try{
+  const{data}=await sb.from('convocatorias').select('*').eq('activa',true).order('orden');
+  const list=document.getElementById('conv-list');
+  if(!data||!data.length){
+    list.innerHTML=`
+      <div class="conv-card"><div class="conv-card-inner"><div><span class="conv-badge cb-lime">Abierto · ANID</span><h3>Startup Ciencia 2026</h3><p>Para empresas de base científico-tecnológica que buscan validar soluciones y escalar al mercado.</p><div class="conv-req">Requisito: <span>Empresa con actividades de I+D</span></div><div class="conv-req">Cierre: <span>Por confirmar 2026</span></div><button class="btn-sm" style="margin-top:.75rem" onclick="window.open('https://calendly.com/carlosmadridgomez','_blank')">Evaluar mi proyecto</button></div><div class="conv-meta"><div class="conv-amount">$134M</div><div class="conv-label">cofinanciamiento máx.</div></div></div></div>
+      <div class="conv-card"><div class="conv-card-inner"><div><span class="conv-badge cb-rose">Abierto · CORFO</span><h3>Innova Alta Tecnología 2026</h3><p>Innovaciones intensivas en I+D con alto potencial de comercialización nacional o global. TRL mínimo 3.</p><div class="conv-req">Requisito: <span>Empresa con 3 años de actividad y ventas acreditadas</span></div><div class="conv-req">Cierre: <span>14 abril 2026</span></div><button class="btn-sm" style="margin-top:.75rem" onclick="window.open('https://calendly.com/carlosmadridgomez','_blank')">Evaluar mi proyecto</button></div><div class="conv-meta"><div class="conv-amount">$1.000M</div><div class="conv-label">cofinanciamiento máx.</div></div></div></div>
+      <div class="conv-card"><div class="conv-card-inner"><div><span class="conv-badge cb-lime">Permanente · SII</span><h3>Ley I+D — Crédito tributario</h3><p>Si tu empresa realiza actividades de I+D, podrías recuperar hasta un 35% de esos costos sin saberlo.</p><div class="conv-req">Requisito: <span>Empresa que tributa en primera categoría</span></div><button class="btn-sm" style="margin-top:.75rem" onclick="window.open('https://www.paypal.com/ncp/payment/J8X4747FQ2AYY','_blank')">Diagnóstico USD $80</button></div><div class="conv-meta"><div class="conv-amount">35%</div><div class="conv-label">de costos recuperables</div></div></div></div>`;
+    return;
+  }
+  list.innerHTML=data.map(c=>`
+    <div class="conv-card">
+      ${c.imagen_url?`<img class="conv-img" src="${c.imagen_url}" alt="${c.nombre}">`:''}
+      <div class="conv-card-inner">
+        <div>
+          <span class="conv-badge ${c.agencia==='CORFO'?'cb-rose':'cb-lime'}">${c.estado||'Abierto'} · ${c.agencia}</span>
+          <h3>${c.nombre}</h3><p>${c.descripcion||''}</p>
+          ${c.requisito?`<div class="conv-req">Requisito: <span>${c.requisito}</span></div>`:''}
+          ${c.fecha_cierre?`<div class="conv-req">Cierre: <span>${formatFecha(c.fecha_cierre)}</span></div>`:''}
+          <button class="btn-sm" style="margin-top:.75rem" onclick="window.open('https://calendly.com/carlosmadridgomez','_blank')">Evaluar mi proyecto</button>
+        </div>
+        <div class="conv-meta"><div class="conv-amount">${c.monto_display||''}</div><div class="conv-label">${c.monto_label||''}</div></div>
+      </div>
+    </div>`).join('');
+  }catch(e){console.error('conv error',e)}
+}
+loadConvocatorias();
+
+/* ACCESO CLIENTE con Resend */
+async function buscarProyecto(){
+  const email=document.getElementById('acceso-email').value.trim().toLowerCase();
+  const msg=document.getElementById('acceso-msg');
+  if(!email||!email.includes('@')){msg.className='acceso-msg err';msg.textContent='Ingresa un email válido';return}
+  msg.className='acceso-msg';msg.textContent='Buscando tu proyecto...';
+  const{data:empresas}=await sb.from('empresas').select('id,nombre').ilike('email',email);
+  if(!empresas||!empresas.length){msg.className='acceso-msg err';msg.textContent='No encontramos proyectos asociados a ese email. Contáctanos para verificar.';return}
+  const{data:proyectos}=await sb.from('proyectos').select('id,nombre,empresas(nombre)').in('empresa_id',empresas.map(e=>e.id)).not('etapa','eq','historico');
+  if(!proyectos||!proyectos.length){msg.className='acceso-msg err';msg.textContent='No hay proyectos activos asociados a ese email.';return}
+  const base=window.location.origin;
+  const links=proyectos.map(p=>`<li style="margin:.4rem 0"><a href="${base}/cliente.html?p=${p.id}" style="color:#AACC2A">→ ${p.empresas?.nombre} · ${p.nombre}</a></li>`).join('');
+  /* Enviar email via Resend */
+  const html=`<div style="font-family:sans-serif;max-width:500px;padding:2rem">
+    <h2 style="color:#AACC2A;margin-bottom:.5rem">Mielina</h2>
+    <p style="color:#333;margin-bottom:1.5rem">Hola, aquí están los links a tus proyectos activos:</p>
+    <ul style="list-style:none;padding:0">${proyectos.map(p=>`<li style="margin:.75rem 0"><a href="${base}/cliente.html?p=${p.id}" style="background:#AACC2A;color:#060708;padding:.6rem 1.2rem;border-radius:99px;text-decoration:none;font-weight:600;display:inline-block">${p.empresas?.nombre} · ${p.nombre}</a></li>`).join('')}</ul>
+    <p style="color:#999;font-size:12px;margin-top:2rem">Este link es único para tu proyecto. Si tienes dudas, escríbenos a hola[at]mielina.cl</p>
+  </div>`;
+  try{
+    const r=await fetch('/api/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:email,subject:'Tu proyecto en Mielina',html})});
+    if(r.ok){msg.className='acceso-msg ok';msg.innerHTML=`✓ Te enviamos el link a <strong>${email}</strong><br><small style="color:#6B6E7A">Revisa tu bandeja de entrada o spam.</small>`;}
+    else{msg.className='acceso-msg ok';msg.innerHTML=`Tus proyectos:<ul style="list-style:none;padding:0;margin-top:.5rem">${links}</ul>`;}
+  }catch(e){
+    msg.className='acceso-msg ok';msg.innerHTML=`Tus proyectos:<ul style="list-style:none;padding:0;margin-top:.5rem">${links}</ul>`;
+  }
+}
+document.getElementById('acceso-email').addEventListener('keydown',e=>{if(e.key==='Enter')buscarProyecto()});
+
+function formatFecha(f){if(!f)return'—';const[y,m,d]=f.substring(0,10).split('-');return new Date(+y,+m-1,+d).toLocaleDateString('es-CL',{day:'numeric',month:'short',year:'numeric'})}
+</script>
+</body>
+</html>
