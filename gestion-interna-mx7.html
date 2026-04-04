@@ -328,9 +328,6 @@ tr:hover td{background:rgba(255,255,255,.02)}
 <div class="modal-overlay" id="modal-password">
   <div class="modal" style="max-width:380px">
     <h3>Cambiar contraseña</h3>
-    <div class="form-group"><label>Contraseña actual</label>
-      <input type="password" id="pw-actual" placeholder="••••••••">
-    </div>
     <div class="form-group"><label>Nueva contraseña</label>
       <input type="password" id="pw-nueva" placeholder="Mínimo 8 caracteres">
     </div>
@@ -441,37 +438,18 @@ const SUPABASE_URL='https://qvquoadbkztbrxfclfmt.supabase.co';
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF2cXVvYWRia3p0YnJ4ZmNsZm10Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MDYzMDIsImV4cCI6MjA5MDI4MjMwMn0.uM7FzCllWvH5ic4RHxo7aoDnK2a9HcKGz1m6MSrP_Dg';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
-// LOCAL USER STORE (simple, sin Supabase Auth por ahora)
-const USERS={'carlos@mielina.cl':{pass:'mielina2026',role:'admin',name:'Carlos Madrid',initials:'CM'}};
 let currentUser=null,currentPage='tablero',proyectoActivo=null,fuenteActiva='CORFO';
 
 const INSTRUMENTOS={
   CORFO:[
-    'Crea y Valida — Etapa 1',
-    'Crea y Valida — Etapa 2',
-    'Crea y Valida — Eureka',
-    'Innova Alta Tecnología',
-    'Consolida y Expande — Nacional',
-    'Consolida y Expande — Internacional',
-    'Capital Humano para la Innovación',
-    'PATI — Absorción Tecnológica',
-    'Súmate a Innovar',
-    'Semilla Expande — Etapa 1',
-    'Semilla Expande — Etapa 2',
-    'Innova Región',
-    'Red Eureka',
-    'Otro CORFO'
+    'Crea y Valida — Etapa 1','Crea y Valida — Etapa 2','Crea y Valida — Eureka',
+    'Innova Alta Tecnología','Consolida y Expande — Nacional','Consolida y Expande — Internacional',
+    'Capital Humano para la Innovación','PATI — Absorción Tecnológica','Súmate a Innovar',
+    'Semilla Expande — Etapa 1','Semilla Expande — Etapa 2','Innova Región','Red Eureka','Otro CORFO'
   ],
   ANID:[
-    'Startup Ciencia',
-    'FONDEF IDeA I+D',
-    'FONDEF IDeA I+D+i',
-    'FONDECYT Regular',
-    'FONDECYT Iniciación',
-    'FONDECYT Postdoctorado',
-    'FONIS',
-    'PFGE — Financiamiento Grupal',
-    'Otro ANID'
+    'Startup Ciencia','FONDEF IDeA I+D','FONDEF IDeA I+D+i','FONDECYT Regular',
+    'FONDECYT Iniciación','FONDECYT Postdoctorado','FONIS','PFGE — Financiamiento Grupal','Otro ANID'
   ],
   'Ley I+D':['Ley 20.241 — Crédito tributario','Ley 20.241 — Certificación CORFO'],
   Otro:[]
@@ -488,51 +466,64 @@ function showLogin(){
   document.getElementById('login-form').style.display='block';
   document.getElementById('login-sub').textContent='Plataforma de gestión de proyectos';
 }
-function sendRecovery(){
+async function sendRecovery(){
   const email=document.getElementById('recovery-email').value.trim();
-  if(USERS[email]){
-    document.getElementById('recovery-success').style.display='block';
-    document.getElementById('recovery-error').style.display='none';
-    // En producción real: enviar email via Supabase Auth
-    toast('Enlace enviado a '+email+' (simulado)');
-  } else {
+  const{error}=await sb.auth.resetPasswordForEmail(email);
+  if(error){
     document.getElementById('recovery-error').style.display='block';
     document.getElementById('recovery-success').style.display='none';
+  } else {
+    document.getElementById('recovery-success').style.display='block';
+    document.getElementById('recovery-error').style.display='none';
   }
 }
-function doLogin(){
+async function doLogin(){
   const email=document.getElementById('login-email').value.trim();
   const pass=document.getElementById('login-password').value;
-  const user=USERS[email];
-  if(user&&user.pass===pass){
-    currentUser={email,...user};
-    document.getElementById('login-screen').style.display='none';
-    document.getElementById('app').style.display='block';
-    document.getElementById('user-name-display').textContent=user.name;
-    document.getElementById('user-avatar').textContent=user.initials;
-    buildSidebar();navigateTo('tablero');
-  } else {
+  const{data,error}=await sb.auth.signInWithPassword({email,password:pass});
+  if(error){
     document.getElementById('login-error').style.display='block';
+    return;
   }
+  const name='Carlos Madrid',initials='CM';
+  currentUser={email,name,initials,role:'admin'};
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('user-name-display').textContent=name;
+  document.getElementById('user-avatar').textContent=initials;
+  buildSidebar();navigateTo('tablero');
 }
 document.getElementById('login-password').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
-function doLogout(){
+async function doLogout(){
+  await sb.auth.signOut();
   currentUser=null;
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('app').style.display='none';
 }
 
+// Verificar sesión activa al cargar
+window.addEventListener('load',async()=>{
+  const{data:{session}}=await sb.auth.getSession();
+  if(session){
+    const name='Carlos Madrid',initials='CM';
+    currentUser={email:session.user.email,name,initials,role:'admin'};
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('app').style.display='block';
+    document.getElementById('user-name-display').textContent=name;
+    document.getElementById('user-avatar').textContent=initials;
+    buildSidebar();navigateTo('tablero');
+  }
+});
+
 // ── CAMBIAR PASSWORD ───────────────────────
-function cambiarPassword(){
-  const actual=document.getElementById('pw-actual').value;
+async function cambiarPassword(){
   const nueva=document.getElementById('pw-nueva').value;
   const confirmar=document.getElementById('pw-confirmar').value;
   const err=document.getElementById('pw-error');
-  if(actual!==USERS[currentUser.email].pass){err.textContent='Contraseña actual incorrecta';err.style.display='block';return}
   if(nueva.length<8){err.textContent='La nueva contraseña debe tener al menos 8 caracteres';err.style.display='block';return}
   if(nueva!==confirmar){err.textContent='Las contraseñas no coinciden';err.style.display='block';return}
-  USERS[currentUser.email].pass=nueva;
-  currentUser.pass=nueva;
+  const{error}=await sb.auth.updateUser({password:nueva});
+  if(error){err.textContent='Error: '+error.message;err.style.display='block';return}
   err.style.display='none';
   closeModal('modal-password');
   toast('Contraseña actualizada ✓');
@@ -677,7 +668,6 @@ async function renderHistorico(){
     sb.from('proyectos').select('*,empresas(nombre)').in('etapa',['adjudicado','rechazado','historico']).order('created_at',{ascending:false}),
     sb.from('documentos').select('*')
   ]);
-  // Index docs by proyecto_id
   const docsMap={};
   (docs||[]).forEach(d=>{if(!docsMap[d.proyecto_id])docsMap[d.proyecto_id]=[];docsMap[d.proyecto_id].push(d)});
   c.innerHTML=`<div class="table-card">
@@ -695,7 +685,7 @@ async function renderHistorico(){
         <td>${badgeEtapa(p.etapa)}</td>
         <td style="color:var(--lime);font-size:12px">${p.monto_maximo?'$'+(p.monto_maximo/1000000).toFixed(0)+'M':'—'}</td>
         <td>
-          ${pdocs.length?pdocs.slice(0,2).map(d=>d.url?`<a href="${d.url}" target="_blank" class="doc-link" style="display:block;margin-bottom:2px">${d.nombre} →</a>`:`<span style="font-size:11px;color:var(--muted)">${d.nombre}</span>`).join('')+''+( pdocs.length>2?`<span style="font-size:10px;color:var(--muted)">+${pdocs.length-2} más</span>`:''):`<span style="font-size:11px;color:var(--muted)">Sin docs</span>`}
+          ${pdocs.length?pdocs.slice(0,2).map(d=>d.url?`<a href="${d.url}" target="_blank" class="doc-link" style="display:block;margin-bottom:2px">${d.nombre} →</a>`:`<span style="font-size:11px;color:var(--muted)">${d.nombre}</span>`).join('')+(pdocs.length>2?`<span style="font-size:10px;color:var(--muted)">+${pdocs.length-2} más</span>`:''):`<span style="font-size:11px;color:var(--muted)">Sin docs</span>`}
         </td>
         <td><button class="btn btn-xs" onclick='navegarProyecto(${JSON.stringify(p)})'>Ver →</button></td>
       </tr>`;
@@ -801,7 +791,6 @@ async function renderProyecto(){
           <button class="btn btn-primary btn-sm" onclick="agregarTareasDefault('${proyectoActivo.id}')">Crear checklist estándar</button>
         </div>`}
 
-        <!-- HITOS FACTURACIÓN -->
         <div class="signal-mini" style="margin-top:1.25rem"></div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
           <div style="font-family:'Bricolage Grotesque',sans-serif;font-size:14px;font-weight:700">Hitos de facturación</div>
@@ -842,7 +831,6 @@ async function renderProyecto(){
             </div>`).join('')}
         </div>`:`<div class="doc-empty">Sin hitos aún — agrega los hitos de facturación de este proyecto</div>`}
 
-        <!-- DOCUMENTOS -->
         <div class="signal-mini" style="margin-top:1.25rem"></div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
           <div style="font-family:'Bricolage Grotesque',sans-serif;font-size:14px;font-weight:700">Documentos</div>
@@ -888,7 +876,7 @@ async function renderProyecto(){
     </div>`;
 }
 
-// ── CRUD ACCIONES ──────────────────────────
+// ── CRUD ───────────────────────────────────
 function abrirModalEmpresa(e=null){
   document.getElementById('modal-empresa-title').textContent=e?'Editar empresa':'Nueva empresa';
   document.getElementById('e-id').value=e?.id||'';
@@ -900,7 +888,6 @@ function abrirModalEmpresa(e=null){
   document.getElementById('e-sector').value=e?.sector||'';
   openModal('modal-empresa');
 }
-
 async function guardarEmpresa(){
   const id=document.getElementById('e-id').value;
   const data={nombre:document.getElementById('e-nombre').value,rut:document.getElementById('e-rut').value,contacto:document.getElementById('e-contacto').value,email:document.getElementById('e-email').value,telefono:document.getElementById('e-telefono').value,sector:document.getElementById('e-sector').value};
@@ -909,7 +896,6 @@ async function guardarEmpresa(){
   if(error){toast('Error: '+error.message,'error');return}
   closeModal('modal-empresa');toast(id?'Empresa actualizada ✓':'Empresa registrada ✓');renderEmpresas();
 }
-
 async function abrirModalProyecto(p=null,historico=false){
   const{data}=await sb.from('empresas').select('id,nombre');
   const sel=document.getElementById('p-empresa');
@@ -925,7 +911,6 @@ async function abrirModalProyecto(p=null,historico=false){
   selectFuente(document.querySelector('#inst-fuente .inst-btn'),'CORFO');
   openModal('modal-proyecto');
 }
-
 async function guardarProyecto(){
   const id=document.getElementById('p-id').value;
   const instrumento=fuenteActiva==='Otro'?document.getElementById('p-instrumento-custom').value:document.getElementById('p-instrumento').value;
@@ -936,7 +921,6 @@ async function guardarProyecto(){
   closeModal('modal-proyecto');toast(id?'Proyecto actualizado ✓':'Proyecto creado ✓');
   if(id&&proyectoActivo){proyectoActivo={...proyectoActivo,...data};renderProyecto()}else{renderProyectos()}
 }
-
 function abrirModalDoc(proyecto_id){
   document.getElementById('doc-proyecto-id').value=proyecto_id;
   document.getElementById('doc-nombre').value='';
@@ -944,7 +928,6 @@ function abrirModalDoc(proyecto_id){
   document.getElementById('doc-nota').value='';
   openModal('modal-doc');
 }
-
 async function guardarDoc(){
   const data={proyecto_id:document.getElementById('doc-proyecto-id').value,nombre:document.getElementById('doc-nombre').value,tipo:document.getElementById('doc-tipo').value,url:document.getElementById('doc-url').value||null,notas:document.getElementById('doc-nota').value||null};
   if(!data.nombre){toast('Ingresa el nombre del documento','error');return}
@@ -952,17 +935,14 @@ async function guardarDoc(){
   if(error){toast('Error: '+error.message,'error');return}
   closeModal('modal-doc');toast('Documento agregado ✓');renderProyecto();
 }
-
 async function toggleTarea(id,completada){
   await sb.from('tareas').update({completada}).eq('id',id);
   setTimeout(()=>renderProyecto(),200);
 }
-
 async function cambiarEtapa(id,etapa){
   await sb.from('proyectos').update({etapa}).eq('id',id);
   proyectoActivo.etapa=etapa;toast('Etapa actualizada ✓');
 }
-
 async function agregarTareasDefault(proyecto_id){
   const tareas=[
     {proyecto_id,nombre:'Reunión inicial con empresa',etapa_numero:1,etapa_nombre:'Diagnóstico y elegibilidad',completada:false},
@@ -980,8 +960,8 @@ async function agregarTareasDefault(proyecto_id){
   await sb.from('tareas').insert(tareas);toast('Checklist creado ✓');renderProyecto();
 }
 
-// ── HITOS FACTURACIÓN ──────────────────────
-function abrirModalHito(proyecto_id, h=null){
+// ── HITOS ──────────────────────────────────
+function abrirModalHito(proyecto_id,h=null){
   document.getElementById('modal-hito-title').textContent=h?'Editar hito':'Nuevo hito de facturación';
   document.getElementById('h-id').value=h?.id||'';
   document.getElementById('h-proyecto-id').value=proyecto_id;
@@ -998,7 +978,6 @@ function abrirModalHito(proyecto_id, h=null){
   document.getElementById('h-comprobante-url').value=h?.comprobante_url||'';
   openModal('modal-hito');
 }
-
 async function guardarHito(){
   const id=document.getElementById('h-id').value;
   const data={
@@ -1018,11 +997,8 @@ async function guardarHito(){
   if(!data.nombre){toast('Ingresa el nombre del hito','error');return}
   const{error}=id?await sb.from('hitos_facturacion').update(data).eq('id',id):await sb.from('hitos_facturacion').insert(data);
   if(error){toast('Error: '+error.message,'error');return}
-  closeModal('modal-hito');
-  toast(id?'Hito actualizado ✓':'Hito agregado ✓');
-  renderProyecto();
+  closeModal('modal-hito');toast(id?'Hito actualizado ✓':'Hito agregado ✓');renderProyecto();
 }
-
 function badgeHito(e){
   const cls={pendiente:'b-gray',facturado:'b-blue',pagado:'b-lime',vencido:'b-rose'};
   const lbl={pendiente:'Pendiente',facturado:'Facturado',pagado:'Pagado',vencido:'Vencido'};
@@ -1033,7 +1009,6 @@ function badgeHito(e){
 function openModal(id){document.getElementById(id).classList.add('open')}
 function closeModal(id){document.getElementById(id).classList.remove('open')}
 document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open')}));
-
 function toast(msg,type=''){
   const t=document.getElementById('toast');
   t.textContent=msg;t.className='show'+(type==='error'?' error':'');
@@ -1041,7 +1016,6 @@ function toast(msg,type=''){
 }
 function formatFecha(f){
   if(!f)return'—';
-  // Parse as local date to avoid UTC timezone shift
   const[y,m,d]=f.substring(0,10).split('-');
   return new Date(+y,+m-1,+d).toLocaleDateString('es-CL',{day:'numeric',month:'short',year:'numeric'});
 }
@@ -1051,7 +1025,6 @@ function badgeEtapa(e){
   const lbl={prospecto:'Prospecto',formulando:'Formulando',enviado:'Enviado',adjudicado:'Adjudicado',rechazado:'Rechazado',historico:'Histórico'};
   return`<span class="badge ${cls[e]||'b-gray'}">${lbl[e]||e}</span>`;
 }
-function navegarProyecto(p){proyectoActivo=p;currentPage='proyecto';buildSidebar();document.getElementById('page-title').textContent='Detalle de proyecto';document.getElementById('topbar-actions').innerHTML=`<button class="btn btn-sm" onclick='abrirModalProyecto(proyectoActivo)'>Editar proyecto</button>`;renderProyecto();}
 </script>
 </body>
 </html>
