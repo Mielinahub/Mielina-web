@@ -588,25 +588,35 @@ function selectFuente(el,fuente){
 async function renderTablero(){
   const c=document.getElementById('main-content');
   c.innerHTML='<div class="loading"><div class="spin"></div> Cargando...</div>';
-  const [{data:proyectos},{data:empresas}]=await Promise.all([
+  const [{data:proyectos},{data:empresas},{data:hitos}]=await Promise.all([
     sb.from('proyectos').select('*,empresas(nombre)').neq('etapa','historico'),
-    sb.from('empresas').select('id')
+    sb.from('empresas').select('id'),
+    sb.from('hitos_facturacion').select('*').eq('estado','pendiente')
   ]);
-  const activos=(proyectos||[]).filter(p=>!['adjudicado','rechazado'].includes(p.etapa));
+  const etapasActivas=['formulando','enviado','en_espera','recurso_reposicion','reformulando','formalizacion','ejecucion'];
+  const enFormulacion=(proyectos||[]).filter(p=>['formulando','reformulando'].includes(p.etapa));
+  const enEspera=(proyectos||[]).filter(p=>['enviado','en_espera','recurso_reposicion'].includes(p.etapa));
+  const activos=(proyectos||[]).filter(p=>etapasActivas.includes(p.etapa));
   const alertas=(proyectos||[]).filter(p=>{
     if(!p.fecha_cierre)return false;
     const d=Math.ceil((new Date(p.fecha_cierre)-new Date())/(1000*60*60*24));
-    return d<=21&&d>=0;
+    return d<=21&&d>=0&&etapasActivas.includes(p.etapa);
   });
   c.innerHTML=`
     <div class="metrics">
       <div class="metric-card"><div class="metric-label">Empresas</div><div class="metric-val lime">${(empresas||[]).length}</div><div class="metric-sub">registradas</div></div>
-      <div class="metric-card"><div class="metric-label">Proyectos activos</div><div class="metric-val white">${activos.length}</div><div class="metric-sub">en proceso</div></div>
-      <div class="metric-card"><div class="metric-label">Con alerta</div><div class="metric-val rose">${alertas.length}</div><div class="metric-sub">cierre ≤21 días</div></div>
+      <div class="metric-card"><div class="metric-label">En formulación</div><div class="metric-val white">${enFormulacion.length}</div><div class="metric-sub">con trabajo activo</div></div>
+      <div class="metric-card"><div class="metric-label">En espera resultado</div><div class="metric-val rose">${enEspera.length}</div><div class="metric-sub">enviados a CORFO/ANID</div></div>
       <div class="metric-card"><div class="metric-label">Adjudicados</div><div class="metric-val lime">${(proyectos||[]).filter(p=>p.etapa==='adjudicado').length}</div><div class="metric-sub">este ciclo</div></div>
     </div>
+    <div class="metrics" style="margin-top:-8px">
+      <div class="metric-card"><div class="metric-label">Hitos por cobrar</div><div class="metric-val white">${(hitos||[]).length}</div><div class="metric-sub">pagos pendientes</div></div>
+      <div class="metric-card"><div class="metric-label">Con alerta cierre</div><div class="metric-val rose">${alertas.length}</div><div class="metric-sub">≤21 días</div></div>
+      <div class="metric-card"><div class="metric-label">Oportunidades</div><div class="metric-val white">${(proyectos||[]).filter(p=>p.etapa==='prospecto').length}</div><div class="metric-sub">sin confirmar</div></div>
+      <div class="metric-card"><div class="metric-label">Proyectos totales</div><div class="metric-val white">${activos.length}</div><div class="metric-sub">activos en cartera</div></div>
+    </div>
     <div class="table-card">
-      <div class="table-header"><div class="table-title">Proyectos activos</div></div>
+      <div class="table-header"><div class="table-title">Proyectos con trabajo activo</div></div>
       <table><thead><tr><th>Empresa</th><th>Proyecto</th><th>Instrumento</th><th>Etapa</th><th>Cierre</th><th></th></tr></thead>
       <tbody>${activos.length?activos.map(p=>`<tr>
         <td style="font-weight:500">${p.empresas?.nombre||'—'}</td>
