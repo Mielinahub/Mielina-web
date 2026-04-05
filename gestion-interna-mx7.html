@@ -548,6 +548,7 @@ function buildSidebar(){
     {id:'tablero',label:'Tablero',icon:'<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>'},
     {id:'empresas',label:'Empresas',icon:'<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>'},
     {id:'proyectos',label:'Proyectos',icon:'<path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>'},
+    {id:'facturacion',label:'Facturación',icon:'<path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>'},
     {id:'historico',label:'Histórico',icon:'<path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>'},
     {id:'alertas',label:'Alertas',icon:'<path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/>'},
     {id:'cuenta',label:'Mi cuenta',icon:'<circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/>'},
@@ -561,13 +562,13 @@ function buildSidebar(){
 
 function navigateTo(page,data=null){
   currentPage=page;proyectoActivo=data;buildSidebar();
-  const titles={tablero:'Tablero',empresas:'Empresas',proyectos:'Proyectos',historico:'Proyectos históricos',alertas:'Alertas',cuenta:'Mi cuenta',proyecto:'Detalle de proyecto'};
+  const titles={tablero:'Tablero',empresas:'Empresas',proyectos:'Proyectos',facturacion:'Facturación',historico:'Proyectos históricos',alertas:'Alertas',cuenta:'Mi cuenta',proyecto:'Detalle de proyecto'};
   document.getElementById('page-title').textContent=titles[page]||page;
   const actions=document.getElementById('topbar-actions');actions.innerHTML='';
   if(page==='empresas')actions.innerHTML=`<button class="btn btn-primary btn-sm" onclick="abrirModalEmpresa()">+ Nueva empresa</button>`;
   if(page==='proyectos')actions.innerHTML=`<button class="btn btn-primary btn-sm" onclick="abrirModalProyecto()">+ Nuevo proyecto</button>`;
   if(page==='historico')actions.innerHTML=`<button class="btn btn-primary btn-sm" onclick="abrirModalProyecto(null,true)">+ Agregar histórico</button>`;
-  const pages={tablero:renderTablero,empresas:renderEmpresas,proyectos:renderProyectos,historico:renderHistorico,alertas:renderAlertas,cuenta:renderCuenta,proyecto:renderProyecto};
+  const pages={tablero:renderTablero,empresas:renderEmpresas,proyectos:renderProyectos,facturacion:renderFacturacion,historico:renderHistorico,alertas:renderAlertas,cuenta:renderCuenta,proyecto:renderProyecto};
   if(pages[page])pages[page]();
 }
 
@@ -825,6 +826,186 @@ function renderVistaProyectos(vista, data, etapas, labels){
       </tbody></table>
     </div>`;
   }
+}
+
+// ── FACTURACIÓN ────────────────────────────
+async function renderFacturacion(){
+  const c=document.getElementById('main-content');
+  c.innerHTML='<div class="loading"><div class="spin"></div> Cargando...</div>';
+
+  const [{data:hitos},{data:proyectos},{data:empresasList}]=await Promise.all([
+    sb.from('hitos_facturacion').select('*'),
+    sb.from('proyectos').select('*,empresas(nombre)'),
+    sb.from('empresas').select('id,nombre').order('nombre')
+  ]);
+
+  let valorUF=37000;
+  try{const r=await fetch('https://mindicador.cl/api/uf');const d=await r.json();valorUF=d.serie[0].valor;}catch(e){}
+
+  // Subsidios máximos por instrumento para proyección de variables
+  const subsidioMax={
+    'Consolida y Expande — Nacional':150000000,
+    'Consolida y Expande — Internacional':150000000,
+    'Innova Alta Tecnología':1000000000,
+    'Ley I+D — Crédito tributario':376917977,
+    'Startup Ciencia':134550000,
+  };
+  const pctVariable={'Consolida y Expande — Nacional':0.015,'Consolida y Expande — Internacional':0.015,'Innova Alta Tecnología':0.008,'Ley I+D — Crédito tributario':0.008,'Startup Ciencia':0.015};
+
+  const proyMap={};
+  (proyectos||[]).forEach(p=>{proyMap[p.id]=p;});
+
+  const fmtClp=n=>n?'$'+Math.round(n).toLocaleString('es-CL'):'—';
+  const fmtUF=n=>n?n.toLocaleString('es-CL',{maximumFractionDigits:1})+' UF':'—';
+
+  const pagados=(hitos||[]).filter(h=>h.estado==='pagado'||h.estado==='facturado');
+  const pendientes=(hitos||[]).filter(h=>h.estado==='pendiente'&&proyMap[h.proyecto_id]&&['formulando','enviado','en_espera','recurso_reposicion','reformulando','formalizacion','ejecucion'].includes(proyMap[h.proyecto_id]?.etapa));
+
+  const totalCobradoUF=pagados.reduce((s,h)=>s+(h.monto_uf||0),0);
+  const totalCobradoCLP=pagados.reduce((s,h)=>s+(h.monto||0),0);
+  const totalPorCobrarUF=pendientes.filter(h=>h.monto_uf).reduce((s,h)=>s+h.monto_uf,0);
+  const totalPorCobrarCLP=pendientes.filter(h=>!h.monto_uf&&h.monto).reduce((s,h)=>s+h.monto,0);
+
+  // Potencial variables
+  const variables=pendientes.filter(h=>!h.monto_uf&&!h.monto);
+  let potencialVariable=0;
+  variables.forEach(h=>{
+    const p=proyMap[h.proyecto_id];
+    if(!p)return;
+    const subsidio=subsidioMax[p.instrumento]||0;
+    const pct=pctVariable[p.instrumento]||0;
+    potencialVariable+=subsidio*pct;
+  });
+
+  // Filtro empresa
+  let filtroEmpresa='';
+
+  const renderTablas=(empFiltro)=>{
+    const hitosP=empFiltro?pagados.filter(h=>proyMap[h.proyecto_id]?.empresa_id===empFiltro):pagados;
+    const hitosC=empFiltro?pendientes.filter(h=>proyMap[h.proyecto_id]?.empresa_id===empFiltro):pendientes;
+    const hitosV=empFiltro?variables.filter(h=>proyMap[h.proyecto_id]?.empresa_id===empFiltro):variables;
+
+    document.getElementById('tabla-cobrados').innerHTML=hitosP.length?hitosP.map(h=>{
+      const p=proyMap[h.proyecto_id]||{};
+      const clp=h.monto_uf?h.monto_uf*valorUF:h.monto||0;
+      return`<tr>
+        <td style="font-weight:500">${p.empresas?.nombre||'—'}</td>
+        <td style="font-size:12px">${p.nombre||'—'}</td>
+        <td style="font-size:12px">${h.nombre}</td>
+        <td style="color:var(--lime)">${h.monto_uf?fmtUF(h.monto_uf):'—'}</td>
+        <td style="color:var(--lime)">${fmtClp(clp)}</td>
+        <td>${badgeHito(h.estado)}</td>
+      </tr>`;}).join(''):`<tr><td colspan="6"><div class="empty"><div class="empty-text">Sin registros</div></div></td></tr>`;
+
+    document.getElementById('tabla-pendientes').innerHTML=hitosC.length?hitosC.map(h=>{
+      const p=proyMap[h.proyecto_id]||{};
+      const clp=h.monto_uf?h.monto_uf*valorUF:h.monto||0;
+      return`<tr>
+        <td style="font-weight:500">${p.empresas?.nombre||'—'}</td>
+        <td style="font-size:12px">${p.nombre||'—'}</td>
+        <td style="font-size:12px">${h.nombre}</td>
+        <td style="color:var(--amber,#f0a030)">${h.monto_uf?fmtUF(h.monto_uf):'—'}</td>
+        <td style="color:var(--amber,#f0a030)">${fmtClp(clp)||'—'}</td>
+        <td style="font-size:11px;color:var(--muted2)">${h.descripcion||'—'}</td>
+      </tr>`;}).join(''):`<tr><td colspan="6"><div class="empty"><div class="empty-text">Sin hitos pendientes</div></div></td></tr>`;
+
+    document.getElementById('tabla-potencial').innerHTML=hitosV.length?hitosV.map(h=>{
+      const p=proyMap[h.proyecto_id]||{};
+      const subsidio=subsidioMax[p.instrumento]||0;
+      const pct=pctVariable[p.instrumento]||0;
+      const estimado=subsidio*pct;
+      return`<tr>
+        <td style="font-weight:500">${p.empresas?.nombre||'—'}</td>
+        <td style="font-size:12px">${p.nombre||'—'}</td>
+        <td style="font-size:12px;color:var(--muted2)">${p.instrumento||'—'}</td>
+        <td style="font-size:12px;color:var(--muted2)">${h.descripcion||'—'}</td>
+        <td style="color:var(--muted2);font-size:12px">${fmtClp(subsidio)} subsidio máx.</td>
+        <td style="color:var(--lime)">${estimado?fmtClp(estimado):'Por definir'}</td>
+      </tr>`;}).join(''):`<tr><td colspan="6"><div class="empty"><div class="empty-text">Sin hitos variables</div></div></td></tr>`;
+  };
+
+  // Gráfico simple por empresa
+  const porEmpresa={};
+  pagados.forEach(h=>{
+    const p=proyMap[h.proyecto_id];if(!p)return;
+    const nom=p.empresas?.nombre||'—';
+    if(!porEmpresa[nom])porEmpresa[nom]={cobrado:0,pendiente:0};
+    porEmpresa[nom].cobrado+=(h.monto_uf?h.monto_uf*valorUF:h.monto||0);
+  });
+  pendientes.forEach(h=>{
+    const p=proyMap[h.proyecto_id];if(!p)return;
+    const nom=p.empresas?.nombre||'—';
+    if(!porEmpresa[nom])porEmpresa[nom]={cobrado:0,pendiente:0};
+    porEmpresa[nom].pendiente+=(h.monto_uf?h.monto_uf*valorUF:h.monto||0);
+  });
+  const empresasGraf=Object.entries(porEmpresa).sort((a,b)=>(b[1].cobrado+b[1].pendiente)-(a[1].cobrado+a[1].pendiente)).slice(0,8);
+  const maxVal=Math.max(...empresasGraf.map(([,v])=>v.cobrado+v.pendiente),1);
+
+  c.innerHTML=`
+    <!-- MÉTRICAS -->
+    <div class="metrics">
+      <div class="metric-card"><div class="metric-label">Total cobrado</div><div class="metric-val lime">${fmtUF(totalCobradoUF)}</div><div class="metric-sub">${fmtClp(totalCobradoUF*valorUF+totalCobradoCLP)}</div></div>
+      <div class="metric-card"><div class="metric-label">Por cobrar (fijo)</div><div class="metric-val white">${fmtUF(totalPorCobrarUF)}</div><div class="metric-sub">${fmtClp(totalPorCobrarUF*valorUF+totalPorCobrarCLP)}</div></div>
+      <div class="metric-card"><div class="metric-label">Potencial variable</div><div class="metric-val white" style="font-size:18px">${fmtClp(potencialVariable)}</div><div class="metric-sub">si todos adjudican</div></div>
+      <div class="metric-card"><div class="metric-label">UF del día</div><div class="metric-val lime" style="font-size:20px">$${Math.round(valorUF).toLocaleString('es-CL')}</div><div class="metric-sub">mindicador.cl</div></div>
+    </div>
+
+    <!-- FILTRO -->
+    <div style="display:flex;gap:8px;margin-bottom:1rem;align-items:center">
+      <select id="fac-empresa" onchange="filtroEmpresa=this.value;renderTablas(this.value)" style="background:var(--bg3);border:0.5px solid var(--border2);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--white);font-family:'DM Sans',sans-serif;outline:none">
+        <option value="">Todas las empresas</option>
+        ${(empresasList||[]).map(e=>`<option value="${e.id}">${e.nombre}</option>`).join('')}
+      </select>
+    </div>
+
+    <!-- GRÁFICO POR EMPRESA -->
+    <div class="table-card" style="margin-bottom:1.25rem;padding:1.25rem">
+      <div style="font-family:'Bricolage Grotesque',sans-serif;font-size:14px;font-weight:700;margin-bottom:1rem">Facturación por empresa</div>
+      ${empresasGraf.map(([nom,v])=>{
+        const pctCob=Math.round(v.cobrado/maxVal*100);
+        const pctPen=Math.round(v.pendiente/maxVal*100);
+        return`<div style="margin-bottom:.75rem">
+          <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px">
+            <span style="color:var(--white)">${nom}</span>
+            <span style="color:var(--muted2)">${fmtClp(v.cobrado+v.pendiente)}</span>
+          </div>
+          <div style="height:8px;background:var(--bg3);border-radius:99px;overflow:hidden;display:flex">
+            <div style="width:${pctCob}%;background:var(--lime);border-radius:99px 0 0 99px"></div>
+            <div style="width:${pctPen}%;background:rgba(170,204,42,.25)"></div>
+          </div>
+        </div>`;
+      }).join('')}
+      <div style="display:flex;gap:1rem;margin-top:.75rem;font-size:11px;color:var(--muted2)">
+        <span><span style="display:inline-block;width:10px;height:10px;background:var(--lime);border-radius:2px;margin-right:4px"></span>Cobrado</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:rgba(170,204,42,.25);border-radius:2px;margin-right:4px"></span>Pendiente</span>
+      </div>
+    </div>
+
+    <!-- TABLA COBRADOS -->
+    <div class="table-card" style="margin-bottom:1.25rem">
+      <div class="table-header"><div class="table-title">Cobrado y facturado</div></div>
+      <table><thead><tr><th>Empresa</th><th>Proyecto</th><th>Hito</th><th>UF</th><th>CLP</th><th>Estado</th></tr></thead>
+      <tbody id="tabla-cobrados"></tbody></table>
+    </div>
+
+    <!-- TABLA PENDIENTES FIJOS -->
+    <div class="table-card" style="margin-bottom:1.25rem">
+      <div class="table-header"><div class="table-title">Por cobrar — monto fijo</div></div>
+      <table><thead><tr><th>Empresa</th><th>Proyecto</th><th>Hito</th><th>UF</th><th>CLP estimado</th><th>Condición</th></tr></thead>
+      <tbody id="tabla-pendientes"></tbody></table>
+    </div>
+
+    <!-- TABLA POTENCIAL VARIABLE -->
+    <div class="table-card">
+      <div class="table-header">
+        <div class="table-title">Potencial variable — contra adjudicación</div>
+        <span style="font-size:11px;color:var(--muted2)">Proyección sobre subsidio máximo</span>
+      </div>
+      <table><thead><tr><th>Empresa</th><th>Proyecto</th><th>Instrumento</th><th>Condición</th><th>Subsidio máx.</th><th>Estimado honorario</th></tr></thead>
+      <tbody id="tabla-potencial"></tbody></table>
+    </div>`;
+
+  renderTablas('');
 }
 
 // ── HISTÓRICO ──────────────────────────────
