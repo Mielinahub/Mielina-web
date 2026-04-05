@@ -594,17 +594,30 @@ async function renderTablero(){
   const [{data:proyectos},{data:empresas},{data:hitos}]=await Promise.all([
     sb.from('proyectos').select('*,empresas(nombre)').neq('etapa','historico'),
     sb.from('empresas').select('id'),
-    sb.from('hitos_facturacion').select('*').eq('estado','pendiente')
+    sb.from('hitos_facturacion').select('*,proyectos(nombre,empresas(nombre))').eq('estado','pendiente')
   ]);
+
+  // Valor UF del día via mindicador.cl
+  let valorUF=37000;
+  try{
+    const r=await fetch('https://mindicador.cl/api/uf');
+    const d=await r.json();
+    valorUF=d.serie[0].valor;
+  }catch(e){}
+
   const etapasActivas=['formulando','enviado','en_espera','recurso_reposicion','reformulando','formalizacion','ejecucion'];
   const enFormulacion=(proyectos||[]).filter(p=>['formulando','reformulando'].includes(p.etapa));
   const enEspera=(proyectos||[]).filter(p=>['enviado','en_espera','recurso_reposicion'].includes(p.etapa));
   const activos=(proyectos||[]).filter(p=>etapasActivas.includes(p.etapa));
+  const oportunidades=(proyectos||[]).filter(p=>p.etapa==='prospecto');
   const alertas=(proyectos||[]).filter(p=>{
     if(!p.fecha_cierre)return false;
     const d=Math.ceil((new Date(p.fecha_cierre)-new Date())/(1000*60*60*24));
     return d<=21&&d>=0&&etapasActivas.includes(p.etapa);
   });
+
+  const fmtClp=n=>n?'$'+Math.round(n).toLocaleString('es-CL'):'—';
+
   c.innerHTML=`
     <div class="metrics">
       <div class="metric-card"><div class="metric-label">Empresas</div><div class="metric-val lime">${(empresas||[]).length}</div><div class="metric-sub">registradas</div></div>
@@ -615,9 +628,42 @@ async function renderTablero(){
     <div class="metrics" style="margin-top:-8px">
       <div class="metric-card"><div class="metric-label">Hitos por cobrar</div><div class="metric-val white">${(hitos||[]).length}</div><div class="metric-sub">pagos pendientes</div></div>
       <div class="metric-card"><div class="metric-label">Con alerta cierre</div><div class="metric-val rose">${alertas.length}</div><div class="metric-sub">≤21 días</div></div>
-      <div class="metric-card"><div class="metric-label">Oportunidades</div><div class="metric-val white">${(proyectos||[]).filter(p=>p.etapa==='prospecto').length}</div><div class="metric-sub">sin confirmar</div></div>
+      <div class="metric-card"><div class="metric-label">Oportunidades</div><div class="metric-val white">${oportunidades.length}</div><div class="metric-sub">sin confirmar</div></div>
       <div class="metric-card"><div class="metric-label">Proyectos totales</div><div class="metric-val white">${activos.length}</div><div class="metric-sub">activos en cartera</div></div>
     </div>
+
+    <!-- HITOS POR COBRAR -->
+    <div class="table-card" style="margin-bottom:1.25rem">
+      <div class="table-header">
+        <div class="table-title">Hitos por cobrar</div>
+        <span style="font-size:11px;color:var(--muted2)">UF ${valorUF.toLocaleString('es-CL')}</span>
+      </div>
+      <table><thead><tr><th>Empresa</th><th>Proyecto</th><th>Hito</th><th>UF</th><th>CLP estimado</th><th>Descripción</th></tr></thead>
+      <tbody>${(hitos||[]).length?(hitos||[]).map(h=>`<tr>
+        <td style="font-weight:500">${h.proyectos?.empresas?.nombre||'—'}</td>
+        <td style="font-size:12px">${h.proyectos?.nombre||'—'}</td>
+        <td style="font-size:12px">${h.nombre}</td>
+        <td style="color:var(--lime);font-weight:500">${h.monto_uf?h.monto_uf+' UF':'—'}</td>
+        <td style="color:var(--muted2);font-size:12px">${h.monto_uf?fmtClp(h.monto_uf*valorUF):h.monto?fmtClp(h.monto):'—'}</td>
+        <td style="color:var(--muted2);font-size:11px">${h.descripcion||'—'}</td>
+      </tr>`).join(''):'<tr><td colspan="6"><div class="empty"><div class="empty-text">Sin hitos pendientes</div></div></td></tr>'}
+      </tbody></table>
+    </div>
+
+    <!-- OPORTUNIDADES -->
+    <div class="table-card" style="margin-bottom:1.25rem">
+      <div class="table-header"><div class="table-title">Oportunidades sin confirmar</div></div>
+      <table><thead><tr><th>Empresa</th><th>Proyecto</th><th>Instrumento</th><th>Monto potencial subsidio</th></tr></thead>
+      <tbody>${oportunidades.length?oportunidades.map(p=>`<tr>
+        <td style="font-weight:500">${p.empresas?.nombre||'—'}</td>
+        <td style="font-size:12px">${p.nombre}</td>
+        <td style="color:var(--muted2);font-size:12px">${p.instrumento||'—'}</td>
+        <td style="color:var(--lime);font-size:12px">${p.monto_maximo?'$'+(p.monto_maximo/1000000).toFixed(0)+'M':'—'}</td>
+      </tr>`).join(''):'<tr><td colspan="4"><div class="empty"><div class="empty-text">Sin oportunidades</div></div></td></tr>'}
+      </tbody></table>
+    </div>
+
+    <!-- PROYECTOS ACTIVOS -->
     <div class="table-card">
       <div class="table-header"><div class="table-title">Proyectos con trabajo activo</div></div>
       <table><thead><tr><th>Empresa</th><th>Proyecto</th><th>Instrumento</th><th>Etapa</th><th>Cierre</th><th></th></tr></thead>
@@ -772,19 +818,21 @@ function renderVistaProyectos(vista, data, etapas, labels){
 async function renderHistorico(){
   const c=document.getElementById('main-content');
   c.innerHTML='<div class="loading"><div class="spin"></div> Cargando...</div>';
-  const[{data},{data:docs}]=await Promise.all([
+  const[{data:todos},{data:docs}]=await Promise.all([
     sb.from('proyectos').select('*,empresas(nombre)').in('etapa',['adjudicado','rechazado','historico']).order('created_at',{ascending:false}),
     sb.from('documentos').select('*')
   ]);
+  // Excluir rechazados que tienen recurso de reposición activo (etapa recurso_reposicion)
+  const data=(todos||[]);
   const docsMap={};
   (docs||[]).forEach(d=>{if(!docsMap[d.proyecto_id])docsMap[d.proyecto_id]=[];docsMap[d.proyecto_id].push(d)});
   c.innerHTML=`<div class="table-card">
     <div class="table-header">
       <div class="table-title">Repositorio histórico</div>
-      <span style="font-size:12px;color:var(--muted2)">${(data||[]).length} proyectos</span>
+      <span style="font-size:12px;color:var(--muted2)">${data.length} proyectos</span>
     </div>
-    <table><thead><tr><th>Empresa</th><th>Proyecto</th><th>Instrumento</th><th>Resultado</th><th>Monto</th><th>Documentos</th><th></th></tr></thead>
-    <tbody>${(data||[]).length?(data||[]).map(p=>{
+    <table><thead><tr><th>Empresa</th><th>Proyecto</th><th>Instrumento</th><th>Resultado</th><th>Monto subsidio</th><th>Documentos</th><th></th></tr></thead>
+    <tbody>${data.length?data.map(p=>{
       const pdocs=docsMap[p.id]||[];
       return`<tr>
         <td style="font-weight:500">${p.empresas?.nombre||'—'}</td>
